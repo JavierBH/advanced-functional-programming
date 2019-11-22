@@ -114,7 +114,6 @@ build_graph(V, E) ->
     add_edges(add_vertexes(empty_graph(), V), E).
 
 main_test() ->
-    % Test for graph implementation
     {ok, GraphCases} =
 	file:consult("test_cases_graph_impl.txt"),
     {ok, ParseCases} =
