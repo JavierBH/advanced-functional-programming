@@ -2,31 +2,63 @@ module Graph(empty, neighbors) where
 
 import Test.QuickCheck
 import Data.Char
+import Data.List
 
 data Graph a = Graph [a] [(a, a)] deriving (Show, Eq)
 
 
-kcolor :: Eq a => [(a, [a])] -> Int -> Maybe [(a, Char)]
-kcolor input_graph n | input_graph == [] = Just []
-                     | otherwise = kcolor_alg (Graph v e) [(v1, 'a')] n
-        where
-            (Graph (v1:v) e) = parse_graph (Graph [] []) input_graph
 
-kcolor_alg :: Eq a => Graph a -> [(a, Char)] -> Int -> Maybe [(a, Char)]
-kcolor_alg (Graph v e) colors n | v == [] = Just colors
-                                | ncolors <= n = kcolor_alg (Graph (tail v) e) newColors n
-                                | otherwise = Just colors
-        where
-            v1 = head v
-            ncolors | colors /= [] = (ord $ maximum $ [c | (_, c) <- colors]) - (ord 'a') + 1
-                    | otherwise = ord 'a'
-            neighbors_list = neighbors (Graph v e) v1
-            color_list = [ord c | (v, c) <- colors, elem v neighbors_list]
-            max | color_list /= [] = maximum color_list
-                | otherwise = ord 'a'
-            missing = [c | c <- [ord 'a'..max], notElem c color_list]
-            newColors | length missing /= 0 = colors ++ [(v1, chr $ head missing)]
-                      | otherwise = colors ++ [(v1,chr $ max + 1)]
+class Monad m => MonadPlus m where  
+    mzero :: m a  
+    mplus :: m a -> m a -> m a  
+
+instance MonadPlus [] where  
+    mzero = []  
+    mplus = (++) 
+
+guard :: (MonadPlus m) => Bool -> m ()  
+guard True = return ()  
+guard False = mzero  
+
+
+get_colors_of :: Eq a => a -> [(a, Char)] -> Graph a -> [Char]
+get_colors_of v c g = colors
+    where
+        neighbor_list = neighbors g v
+        colors = [color | (_,color) <- (filter (\(x,_) -> elem x neighbor_list) c)]
+
+        {-
+colors = [(1,'a'),(2,'b'),(3,'c')]
+g = (Graph [1,2,3] [(1,2),(1,3)])
+        -}
+valid_coloring :: Eq a => Graph a -> [(a, Char)] -> [Bool]
+valid_coloring g colors = do
+    (n,c) <- colors
+    guard (notElem c (get_colors_of n colors g))
+    return True
+
+
+check_coloring :: Eq a => Graph a -> [[(a, Char)]] -> Maybe [(a, Char)]
+check_coloring g [] = Nothing
+check_coloring g (c:colors) | nvertexes == valid = Just c
+                            | otherwise = check_coloring g colors
+    where
+        Graph v _ = g
+        nvertexes = length v
+        valid = length $ valid_coloring g c
+
+
+kcolor :: Eq a => [(a, [a])] -> Int -> [Maybe [(a, Char)]]
+kcolor input_graph n = do
+    color <- [(zip a [chr color | color <- x]) | a <- permutations $ v, x <- [x| x <- mapM (const [97..(97+n-1)]) v], head x < head (tail x)]
+    guard(check_coloring g colors)
+    return color
+    where
+        Graph v e = g
+        colors = [(zip a [chr color | color <- x]) | a <- permutations $ v, x <- [x| x <- mapM (const [97..(97+n-1)]) v], head x < head (tail x) ]
+        g = parse_graph empty input_graph
+
+
 
 parse_graph :: Eq a => Graph a -> [(a, [a])] -> Graph a
 parse_graph g [] = g
