@@ -1,0 +1,3 @@
+#lang racket
+(define (perm l)
+  (reverse (list l)))

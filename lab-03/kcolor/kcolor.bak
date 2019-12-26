@@ -1,0 +1,23 @@
+#lang racket
+
+(define-struct graph (vertices edges))
+
+(define g1 (make-graph '(1 2 3) '((1 2) (2 3) (1 3))))
+
+(define empty (make-graph '() '()))
+
+(define (add-vertex g v) (
+  cond
+    [(not (list? (member v (graph-vertices g)))) (make-graph (append (graph-vertices g) (list v)) (graph-edges g))]
+    [else g]
+))
+
+
+(define (add-edge g e) (
+  cond
+    [(or
+      (not (list? (member '(v1 v2) (graph-edges g))))
+      (not (list? (member '(v2 v1) (graph-edges g))))
+       (make-graph (graph-vertices g) (append  (graph-edges g) (list (cons v1 v2))))]
+    [else g]
+))
